@@ -1,4 +1,4 @@
-/build/
-/CMakeUserPresets.json
+/backend/build/
+/backend/CMakeUserPresets.json
 /notes.md
 /.vscode/

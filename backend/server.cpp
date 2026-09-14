@@ -1,13 +1,30 @@
 #include "crow.h"
 #include "crow/middlewares/cors.h"
+#include <SQLiteCpp/Database.h>
+#include <SQLiteCpp/SQLiteCpp.h>
+#include <SQLiteCpp/Statement.h>
 #include <vector>
 #include <string>
-#include <mutex>
+#include <iostream>
 
-struct Message {
-    std::string sender;
-    std::string content;
-};
+// Helper to open a connection per thread
+SQLite::Database get_db() {
+    SQLite::Database db("chat.db3", SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE);
+    // WAL mode allows concurrent readers while a thread writes
+    db.exec("PRAGMA journal_mode=WAL;");
+    // Wait up to 5s on locked DB instead of failing immediately with SQLITE_BUSY
+    db.exec("PRAGMA busy_timeout = 5000;");
+    return db;
+}
+
+void init_db() {
+    SQLite::Database db = get_db();
+    db.exec("CREATE TABLE IF NOT EXISTS messages ("
+            "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+            "sender TEXT NOT NULL, "
+            "content TEXT NOT NULL"
+            ");");
+}
 
 int main() {
     // 1. Initialize the App with the CORS Middleware configuration
@@ -21,31 +38,35 @@ int main() {
         .methods("POST"_method, "GET"_method, "OPTIONS"_method)
         .headers("Content-Type", "Authorization");
 
-    std::vector<Message> messages;
-    std::mutex mtx;
+    init_db();
 
-    // GET: Fetch all messages (Notice how clean this is now!)
+    // GET: Fetch all messages
     CROW_ROUTE(app, "/api/messages").methods("GET"_method)
-    ([&messages, &mtx]() {
-        std::lock_guard<std::mutex> lock(mtx);
-        
-        std::vector<crow::json::wvalue> list_items;
-        list_items.reserve(messages.size());
-        
-        for (const auto& msg : messages) {
-            crow::json::wvalue m;
-            m["sender"] = msg.sender;
-            m["content"] = msg.content;
-            list_items.push_back(std::move(m));
+    ([]() {
+        try {
+            SQLite::Database db = get_db();
+            SQLite::Statement query(db, "SELECT sender, content FROM messages ORDER BY id ASC");
+            
+            std::vector<crow::json::wvalue> list_items;
+            
+            while(query.executeStep()) {
+                crow::json::wvalue m;
+                m["sender"] = query.getColumn(0).getText();
+                m["content"] = query.getColumn(1).getText();
+                list_items.push_back(std::move(m));
+            }
+            
+            crow::json::wvalue result = std::move(list_items);
+            return crow::response(result); 
+        } catch (const std::exception& e) {
+            std::cerr << "DB Error: " << e.what() << std::endl;
+            return crow::response(500);
         }
-        
-        crow::json::wvalue result = std::move(list_items);
-        return crow::response(result); 
     });
 
     // POST: Send a new message
     CROW_ROUTE(app, "/api/messages").methods("POST"_method)
-    ([&messages, &mtx](const crow::request& req) {
+    ([](const crow::request& req) {
         auto body = crow::json::load(req.body);
         if (!body) return crow::response(400);
 
@@ -53,11 +74,24 @@ int main() {
         if (!body.has("sender") || !body.has("content")) {
             return crow::response(400);
         }
+        // Validate types before calling .s() — it asserts/throws on non-strings
+        if (body["sender"].t() != crow::json::type::String ||
+            body["content"].t() != crow::json::type::String) {
+            return crow::response(400);
+        }
 
-        std::lock_guard<std::mutex> lock(mtx);
-        messages.push_back({body["sender"].s(), body["content"].s()});
+        try {
+            SQLite::Database db = get_db();
+            SQLite::Statement query(db, "INSERT INTO messages (sender, content) VALUES (?, ?)");
+            query.bind(1, std::string(body["sender"].s()));
+            query.bind(2, std::string(body["content"].s()));
 
-        return crow::response(201);
+            query.exec();
+            return crow::response(201);
+        } catch (const std::exception& e) {
+            std::cerr << "DB Error: " << e.what() << std::endl;
+            return crow::response(500);
+        }
     });
 
     // Run on port 8080

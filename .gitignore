@@ -2,3 +2,4 @@
 /backend/CMakeUserPresets.json
 /notes.md
 /.vscode/
+*.db3

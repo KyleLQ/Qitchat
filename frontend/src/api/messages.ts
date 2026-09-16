@@ -1,6 +1,7 @@
 export interface ChatMessage {
   sender: string
   content: string
+  created_at: string
 }
 
 // In dev, Vite proxies `/api` -> http://localhost:8080 (see vite.config.ts).
@@ -14,7 +15,9 @@ export async function fetchMessages(): Promise<ChatMessage[]> {
   if (!Array.isArray(data)) return []
   return data.filter(
     (m): m is ChatMessage =>
-      typeof m?.sender === 'string' && typeof m?.content === 'string',
+      typeof m?.sender === 'string' && 
+      typeof m?.content === 'string' && 
+      typeof m?.created_at === 'string',
   )
 }
 

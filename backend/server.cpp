@@ -22,7 +22,8 @@ void init_db() {
     db.exec("CREATE TABLE IF NOT EXISTS messages ("
             "id INTEGER PRIMARY KEY AUTOINCREMENT, "
             "sender TEXT NOT NULL, "
-            "content TEXT NOT NULL"
+            "content TEXT NOT NULL, "
+            "created_at DATETIME DEFAULT CURRENT_TIMESTAMP"
             ");");
 }
 
@@ -45,7 +46,8 @@ int main() {
     ([]() {
         try {
             SQLite::Database db = get_db();
-            SQLite::Statement query(db, "SELECT sender, content FROM messages ORDER BY id ASC");
+            SQLite::Statement query(db, 
+                "SELECT sender, content, datetime(created_at, \'localtime\') FROM messages ORDER BY id ASC");
             
             std::vector<crow::json::wvalue> list_items;
             
@@ -53,6 +55,7 @@ int main() {
                 crow::json::wvalue m;
                 m["sender"] = query.getColumn(0).getText();
                 m["content"] = query.getColumn(1).getText();
+                m["created_at"] = query.getColumn(2).getText();
                 list_items.push_back(std::move(m));
             }
             

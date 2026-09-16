@@ -89,6 +89,7 @@ onUnmounted(() => {
           :class="{ own: m.sender === sender.trim() && sender.trim() !== '' }"
         >
           <span class="message-sender">{{ m.sender }}</span>
+          <span class="message-created_at">{{ m.created_at }}</span>
           <p class="message-content">{{ m.content }}</p>
         </div>
       </div>
@@ -119,6 +120,11 @@ onUnmounted(() => {
 }
 
 .chat-card {
+  --font-small: 0.9rem;
+  --font-medium: 1.25rem;
+  --font-large: 3rem;
+
+  font-size: var(--font-medium);
   width: 100%;
   max-width: 640px;
   display: flex;
@@ -137,7 +143,7 @@ onUnmounted(() => {
 }
 
 .chat-header h1 {
-  font-size: 1.4rem;
+  font-size: var(--font-large);
   margin: 0;
 }
 
@@ -147,6 +153,7 @@ onUnmounted(() => {
   border-radius: 8px;
   padding: 0.35rem 0.75rem;
   cursor: pointer;
+  color:#fff;
 }
 
 .name-row {
@@ -156,7 +163,7 @@ onUnmounted(() => {
 }
 
 .name-row span {
-  font-size: 0.85rem;
+  font-size: var(--font-medium);
   white-space: nowrap;
 }
 
@@ -169,6 +176,7 @@ onUnmounted(() => {
   background: var(--color-background);
   color: inherit;
   min-width: 0;
+  font-size: var(--font-medium);
 }
 
 .messages {
@@ -205,8 +213,14 @@ onUnmounted(() => {
 }
 
 .message-sender {
-  font-size: 0.75rem;
+  font-size: var(--font-medium);
   font-weight: 700;
+  opacity: 0.8;
+}
+
+.message-created_at {
+  padding-left: 0.5rem;
+  font-size: var(--font-small);
   opacity: 0.8;
 }
 
@@ -242,7 +256,7 @@ onUnmounted(() => {
 
 .hint {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: var(--font-small);
   opacity: 0.7;
 }
 </style>

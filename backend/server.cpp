@@ -25,6 +25,19 @@ void init_db() {
             "content TEXT NOT NULL, "
             "created_at DATETIME DEFAULT CURRENT_TIMESTAMP"
             ");");
+    
+    // Set message limit to 1000
+    db.exec("DROP TRIGGER IF EXISTS limit_messages_count;");
+    db.exec("CREATE TRIGGER limit_messages_count "
+            "AFTER INSERT ON messages "
+            "BEGIN "
+                "DELETE FROM messages "
+                "WHERE id NOT IN ( "
+                    "SELECT id FROM messages "
+                    "ORDER BY id DESC "
+                    "LIMIT 1000 "
+            ");"
+            "END;");
 }
 
 int main() {

@@ -1,5 +1,5 @@
 /backend/build/
 /backend/CMakeUserPresets.json
-/notes.md
+/notes/
 /.vscode/
 *.db3

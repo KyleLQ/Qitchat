@@ -1,6 +1,7 @@
 {
   "dependencies": [
     "crow",
-    "sqlitecpp"
+    "sqlitecpp",
+    "libsodium"
   ]
 }

@@ -1,5 +1,8 @@
 #include "messages.h"
 #include "../db.h"
+#include "common.h"
+#include <crow/json.h>
+#include <optional>
 #include <vector>
 
 void register_message_routes(AppType& app) {
@@ -33,16 +36,11 @@ void register_message_routes(AppType& app) {
     CROW_ROUTE(app, "/api/messages").methods("POST"_method)
     ([](const crow::request& req) {
         auto body = crow::json::load(req.body);
-        if (!body) return crow::response(400);
-
-        // Quick check to avoid crashing if malformed JSON slips past
-        if (!body.has("sender") || !body.has("content")) {
-            return crow::response(400);
-        }
-        // Validate types before calling .s() — it asserts/throws on non-strings
-        if (body["sender"].t() != crow::json::type::String ||
-            body["content"].t() != crow::json::type::String) {
-            return crow::response(400);
+        if ( auto err = validate_body(body, {
+            {"sender", crow::json::type::String,},
+            {"content", crow::json::type::String}
+        })) {
+            return crow::response(400, *err);
         }
 
         try {

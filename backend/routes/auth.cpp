@@ -15,15 +15,12 @@ void register_auth_routes(AppType& app) {
     CROW_ROUTE(app, "/api/auth/signup").methods("POST"_method)
     ([](const crow::request& req) {
         auto body = crow::json::load(req.body);
-        if (!body) return crow::response(400, "missing body!");
-
-        if (!body.has("username") || !body.has("password")) {
-            return crow::response(400, "missing username or password!");
-        }
-
-        if (body["username"].t() != crow::json::type::String ||
-            body["password"].t() != crow::json::type::String) {
-            return crow::response(400, "username and password must be strings!");
+        if (auto err = validate_body(body, {
+            {"username", crow::json::type::String,},
+            {"password", crow::json::type::String}
+            }
+        )) {
+            return crow::response(400, *err);
         }
 
         std::string username = body["username"].s();
@@ -104,15 +101,12 @@ void register_auth_routes(AppType& app) {
     CROW_ROUTE(app, "/api/auth/login").methods("POST"_method)
     ([](const crow::request& req){
         auto body = crow::json::load(req.body);
-        if (!body) return crow::response(400, "missing body!");
-
-        if (!body.has("username") || !body.has("password")) {
-            return crow::response(400, "missing username or password!");
-        }
-
-        if (body["username"].t() != crow::json::type::String ||
-            body["password"].t() != crow::json::type::String) {
-            return crow::response(400, "username and password must be strings!");
+       if (auto err = validate_body(body, {
+            {"username", crow::json::type::String,},
+            {"password", crow::json::type::String}
+            }
+        )) {
+            return crow::response(400, *err);
         }
 
         std::string username = body["username"].s();
@@ -121,6 +115,7 @@ void register_auth_routes(AppType& app) {
         try {
             SQLite::Database db = get_db();
             return crow::response(201, "placeholder");
+            // todo now verify password hash. (should probably be a helper too!)
 
         } catch (const std::exception& e) {
             std::cerr << "DB Error: " << e.what() << std::endl;
